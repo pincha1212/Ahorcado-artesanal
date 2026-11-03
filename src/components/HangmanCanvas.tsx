@@ -17,7 +17,15 @@ export const HangmanCanvas: React.FC<HangmanCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [animProgress, setAnimProgress] = useState<number>(1);
+  const [windowWidth, setWindowWidth] = useState<number>(() => typeof window !== 'undefined' ? window.innerWidth : 1024);
   const prevMistakesRef = useRef<number>(mistakes);
+
+  // Resize listener
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Trigger stroke pencil animation when mistakes change
   useEffect(() => {
@@ -405,7 +413,7 @@ export const HangmanCanvas: React.FC<HangmanCanvasProps> = ({
 
       ctx.restore();
     }
-  }, [mistakes, maxMistakes, isWon, isLost, animProgress]);
+  }, [mistakes, maxMistakes, isWon, isLost, animProgress, windowWidth]);
 
   return (
     <div

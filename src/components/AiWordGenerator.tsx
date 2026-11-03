@@ -3,6 +3,7 @@ import { Sparkles, BookmarkPlus, Play, Check, AlertCircle, RefreshCw, Layers } f
 import { WordItem, DifficultyLevel } from '../types/game';
 import { sound } from '../audio/soundEffects';
 import { getSavedWords, saveWords } from '../storage/libraryStorage';
+import { generateClientWords } from '../game/clientWordGenerator';
 
 interface AiWordGeneratorProps {
   onPlayWithWords: (words: WordItem[]) => void;
@@ -60,18 +61,22 @@ export const AiWordGenerator: React.FC<AiWordGeneratorProps> = ({
         }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Error al comunicarse con la inteligencia artificial.');
+        throw new Error('Servidor full-stack no disponible');
       }
 
+      const data = await response.json();
       setGeneratedWords(data.words || []);
-      // Select all by default
       const allIds = new Set<string>((data.words || []).map((w: WordItem) => w.id));
       setSelectedWordIds(allIds);
       sound.playPageFlip();
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Error inesperado al generar palabras.');
+    } catch {
+      // Graceful fallback for GitHub Pages or offline environments
+      const clientBatch = generateClientWords(topic, difficulty, count, includeHints);
+      setGeneratedWords(clientBatch);
+      setSelectedWordIds(new Set(clientBatch.map(w => w.id)));
+      setSavedSuccessMessage('Generado en modo estático (compatible con GitHub Pages y sin conexión).');
+      sound.playPageFlip();
     } finally {
       setIsLoading(false);
     }

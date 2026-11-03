@@ -70,6 +70,7 @@ export interface OnlineRoomState {
   mistakes: number;
   maxMistakes: number;
   winner?: 'host' | 'guest' | 'draw' | null;
+  creatorOfWord?: 'host' | 'guest';
   secretWordRevealed?: string; // only revealed when round concludes
   lastActivity: number;
 }

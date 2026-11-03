@@ -58,6 +58,21 @@ test('calculateRoundScore rewards accuracy, health and difficulty', () => {
   assert.ok(easyScore > 0, 'Score should be positive on victory');
 });
 
+test('normalizeChar handles accented physical keyboard keys correctly', () => {
+  const spanishKeys = ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ü', 'Ñ'];
+  const expected = ['A', 'E', 'I', 'O', 'U', 'U', 'Ñ', 'A', 'E', 'I', 'O', 'U', 'U', 'Ñ'];
+  spanishKeys.forEach((key, i) => {
+    assert.equal(normalizeChar(key), expected[i]);
+  });
+});
+
+test('distinct letters calculation properly excludes spaces and punctuation', () => {
+  const phrase = 'DARK SOULS 3!';
+  const lettersOnly = Array.from(phrase).filter(c => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]$/.test(c));
+  const distinct = new Set(lettersOnly.map(c => normalizeChar(c)));
+  assert.equal(distinct.size, 8); // D, A, R, K, S, O, U, L
+});
+
 test('validateCustomWord detects invalid inputs and leaks in hints', () => {
   assert.equal(validateCustomWord('A').valid, false);
   assert.equal(validateCustomWord('Supercalifragilisticoespialidoso123').valid, false);

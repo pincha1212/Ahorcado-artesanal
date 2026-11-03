@@ -118,8 +118,13 @@ export const SoloGame: React.FC<SoloGameProps> = ({
         // Check win
         if (checkWinCondition(currentWordItem.word, nextGuessed)) {
           setIsWon(true);
+          const distinctLetters = new Set(
+            Array.from(currentWordItem.word)
+              .filter(c => c !== ' ' && c !== '-' && c !== '\'')
+              .map(c => normalizeChar(c))
+          ).size;
           const score = calculateRoundScore(
-            new Set(wordNormChars).size,
+            distinctLetters,
             mistakes,
             settings.maxAttempts,
             hintRevealed,

@@ -51,9 +51,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         return;
       }
 
-      const key = e.key.toUpperCase();
-      if (/^[A-ZÑ]$/.test(key)) {
-        handleKeyClick(key);
+      const norm = normalizeChar(e.key);
+      if (/^[A-ZÑ]$/.test(norm)) {
+        handleKeyClick(norm);
       }
     };
 

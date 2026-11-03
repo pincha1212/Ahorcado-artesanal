@@ -7,6 +7,23 @@ const STORAGE_KEY_STATS = 'ahorcado_stats_v1';
 
 export const APP_VERSIONS = [
   {
+    version: 'v1.6.0',
+    releaseDate: 'Nov 2026',
+    title: 'Compatibilidad GitHub Pages & Reparación de Errores',
+    highlights: [
+      'Configuración de rutas relativas (base: ./) para despliegue en cualquier subdirectorio de GitHub Pages.',
+      'Flujo automatizado de GitHub Actions (.github/workflows/deploy.yml) para compilación y despliegue continuo.',
+      'Generador semántico híbrido con modo offline/estático automático si no existe servidor backend.',
+      'Reparación de entrada de teclado físico para caracteres con diacríticos (Á, É, Í, Ó, Ú, Ü).',
+      'Corrección en la fórmula de puntaje excluyendo espacios de letras descubiertas.',
+      'Redimensionamiento reactivo en tiempo real del lienzo 2D en dispositivos móviles y rotación de pantalla.',
+    ],
+    auditedModules: [
+      { id: 'mod-gh-pages', name: 'Módulo de Despliegue GitHub Pages', version: '1.6.0', status: 'passed' as const, description: 'Rutas relativas, flujo CI/CD y compatibilidad SPA estática.', features: ['base: ./', 'Workflow deploy.yml', 'Redirección 404 SPA', 'Modo híbrido'] },
+      { id: 'mod-keyboard-fix', name: 'Controlador de Teclado Físico & Diacríticos', version: '1.6.0', status: 'passed' as const, description: 'Traducción de teclas físicas españolas con tildes a letras normalizadas.', features: ['Captura de Á/É/Í/Ó/Ú', 'Filtro de inputs', 'Fórmula limpia de puntaje'] },
+    ],
+  },
+  {
     version: 'v1.5.0',
     releaseDate: 'Nov 2026',
     title: 'Acústica de Grafito Web Audio & Módulo de Auditoría',
