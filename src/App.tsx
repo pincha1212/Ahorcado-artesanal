@@ -81,7 +81,7 @@ export default function App() {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
               <span className="font-bold hidden sm:inline">Auditoría</span>
               <span className="font-typewriter bg-amber-200 text-amber-950 px-1 py-0.2 rounded text-[10px]">
-                v1.8.0
+                v1.9.0
               </span>
             </button>
           </div>

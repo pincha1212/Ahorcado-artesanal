@@ -1,0 +1,13 @@
+{
+  "version": "v1.9.0",
+  "name": "El Ahorcado Artesanal",
+  "buildDate": "2026-11-03T13:55:00.000Z",
+  "repository": "pincha1212/Ahorcado-artesanal",
+  "features": [
+    "Canvas 2D Grafito Orgánico",
+    "Generador IA Gemini 3.8 Flash",
+    "Multijugador Local Pass & Play",
+    "Multijugador Online Firestore 6 Dígitos",
+    "Monitor de Sincronización GitHub Pages"
+  ]
+}

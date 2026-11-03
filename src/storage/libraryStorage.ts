@@ -7,6 +7,23 @@ const STORAGE_KEY_STATS = 'ahorcado_stats_v1';
 
 export const APP_VERSIONS = [
   {
+    version: 'v1.9.0',
+    releaseDate: 'Nov 2026',
+    title: 'Monitor de Sincronización GitHub Pages & Trazabilidad de Versiones Remotas',
+    highlights: [
+      'Detección y diagnóstico en tiempo real de discrepancias entre el entorno activo de desarrollo (AI Studio) y la versión publicada en GitHub Pages.',
+      'Sonda de consulta a la API de GitHub y al endpoint de producción para identificar versiones desactualizadas (ej: GitHub en v1.6.0 vs Local en v1.9.0).',
+      'Generador interactivo de comandos Git y script de actualización automatizado para el repositorio pincha1212/Ahorcado-artesanal.',
+      'Generación del artefacto público version.json para verificación instantánea del build en producción sin depender de caché de navegador.',
+      'Modernización del flujo CI/CD (.github/workflows/deploy.yml) a Node 22 con flags resilientes (--legacy-peer-deps), control de concurrencia y despliegue a gh-pages.',
+      'Botón de diagnóstico rápido con 1 clic para validar conectividad con GitHub Pages y forzar la recarga sin caché.',
+    ],
+    auditedModules: [
+      { id: 'mod-gh-sync-detector', name: 'Monitor de Sincronización GitHub Pages', version: '1.9.0', status: 'passed' as const, description: 'Comprobador de desfase entre versión remota y entorno de desarrollo.', features: ['Sonda GitHub Pages', 'Detección v1.6 vs v1.9', 'Alertas de desfase', 'Diagnóstico de commits'] },
+      { id: 'mod-ci-pipeline-v2', name: 'Pipeline CI/CD GitHub Actions Node 22', version: '1.9.0', status: 'passed' as const, description: 'Flujo optimizado con package-lock.json y permisos de escritura en rama gh-pages.', features: ['Node.js 22', 'Cache npm', 'Fuerza gh-pages huérfana', 'public/version.json'] },
+    ],
+  },
+  {
     version: 'v1.8.0',
     releaseDate: 'Nov 2026',
     title: 'Colección Games en Firestore con Códigos de 6 Dígitos y Sincronización Total',

@@ -17,6 +17,7 @@ import { APP_VERSIONS } from '../storage/libraryStorage';
 import { normalizeChar, checkWinCondition } from '../game/rules';
 import { sound } from '../audio/soundEffects';
 import { testConnection } from '../firebase/config';
+import { GitHubSyncMonitor } from './GitHubSyncMonitor';
 
 interface DiagnosticResult {
   id: string;
@@ -288,14 +289,14 @@ git push -u origin main`;
           </button>
           <button
             onClick={() => setActiveTab('github_pages')}
-            className={`px-3.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'github_pages'
                 ? 'bg-amber-200 border-amber-500 font-bold text-stone-900'
                 : 'bg-stone-100 border-stone-300 text-stone-600 hover:bg-stone-200'
             }`}
           >
             <Globe className="w-4 h-4 text-emerald-700" />
-            <span>Subida a GitHub Pages</span>
+            <span>Sincronización GitHub Pages</span>
           </button>
         </div>
 
@@ -405,63 +406,17 @@ git push -u origin main`;
 
           {activeTab === 'github_pages' && (
             <div className="space-y-4">
-              <div className="bg-emerald-50 border-2 border-emerald-600 rounded-xl p-4 sketch-border-sm">
-                <h4 className="font-title text-2xl font-bold text-emerald-900 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <span>Preparado para GitHub Pages</span>
-                </h4>
-                <p className="text-sm text-emerald-950 mt-1">
-                  El proyecto ya cuenta con rutas relativas fijadas en <code className="bg-emerald-100 px-1 rounded">base: './'</code> en Vite y el flujo automatizado <code className="bg-emerald-100 px-1 rounded">.github/workflows/deploy.yml</code>.
-                </p>
-              </div>
-
-              <div className="bg-white border-2 border-stone-800 rounded-xl p-4 sketch-border-sm">
-                <h4 className="font-bold text-stone-900 text-lg mb-2">
-                  Pasos para Publicar en tu Cuenta de GitHub:
-                </h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-stone-700">
-                  <li>
-                    Crea un repositorio en <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-amber-800 underline font-bold">GitHub</a> (ej: <code>Ahorcado-artesanal</code>).
-                  </li>
-                  <li>
-                    Ejecuta estos comandos en tu terminal local:
-                    <div className="relative mt-2">
-                      <pre className="bg-[#2d2926] text-amber-200 p-3 rounded-lg text-xs font-mono overflow-x-auto">
-                        {gitInstructions}
-                      </pre>
-                      <button
-                        onClick={copyGitCommands}
-                        className="absolute right-2 top-2 px-2.5 py-1 bg-stone-700 hover:bg-stone-600 text-white rounded text-xs font-hand"
-                      >
-                        {copiedGitCmd ? '¡Copiado!' : 'Copiar comandos'}
-                      </button>
-                    </div>
-                  </li>
-                  <li>
-                    El flujo de GitHub Actions compilará automáticamente el proyecto con <code>npm run build</code> y publicará la carpeta <code>dist</code> en la rama <strong>gh-pages</strong>.
-                  </li>
-                  <li>
-                    En tu repositorio en GitHub, ve a: <strong>Settings &gt; Pages</strong>:
-                    <ul className="list-disc list-inside ml-4 mt-1 space-y-1 text-stone-600">
-                      <li>En <strong>Source</strong>: selecciona <em>Deploy from a branch</em>.</li>
-                      <li>En <strong>Branch</strong>: selecciona <em>gh-pages</em> y carpeta <em>/ (root)</em>, luego haz clic en <em>Save</em>.</li>
-                    </ul>
-                  </li>
-                  <li>
-                    ¡Listo! Tu juego estará publicado y funcionando en: <code className="bg-stone-100 px-1 rounded font-bold text-emerald-800">https://tu-usuario.github.io/tu-repo/</code>.
-                  </li>
-                </ol>
-              </div>
+              <GitHubSyncMonitor />
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="pt-3 mt-4 border-t border-stone-300 flex justify-between items-center text-xs text-stone-500 font-hand">
-          <span>Versión activa: <strong className="text-stone-800">v1.8.0 (Colección /games Firestore & Códigos 6 Dígitos)</strong></span>
+          <span>Versión activa: <strong className="text-stone-800">v1.9.0 (Monitor de Sincronización GitHub Pages & Firestore 6 Dígitos)</strong></span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-stone-800 text-white rounded font-bold hover:bg-stone-900 text-sm"
+            className="px-4 py-1.5 bg-stone-800 text-white rounded font-bold hover:bg-stone-900 text-sm cursor-pointer"
           >
             Entendido
           </button>

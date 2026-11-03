@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,15 +21,16 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm install
+        run: npm install --legacy-peer-deps
 
-      - name: Construir el proyecto con npm run build
+      - name: Construir el proyecto para producción
         run: npm run build
 
       - name: Desplegar carpeta dist en rama gh-pages
@@ -33,3 +38,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          force_orphan: true
