@@ -12,7 +12,10 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
-  ShieldAlert,
+  ShieldCheck,
+  Workflow,
+  Bot,
+  Zap,
 } from 'lucide-react';
 import { sound } from '../audio/soundEffects';
 
@@ -26,7 +29,7 @@ interface GitHubSyncState {
   message: string;
 }
 
-const LOCAL_VERSION = 'v1.9.0';
+const LOCAL_VERSION = 'v1.10.0';
 const REPO_OWNER = 'pincha1212';
 const REPO_NAME = 'Ahorcado-artesanal';
 const GITHUB_PAGES_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/`;
@@ -35,7 +38,7 @@ const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
 export const GitHubSyncMonitor: React.FC = () => {
   const [syncState, setSyncState] = useState<GitHubSyncState>({
     status: 'idle',
-    remoteVersion: 'v1.6.0',
+    remoteVersion: null,
     remoteCommitDate: null,
     remoteCommitMessage: null,
     remoteCommitSha: null,
@@ -44,6 +47,7 @@ export const GitHubSyncMonitor: React.FC = () => {
   });
 
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [workflowTab, setWorkflowTab] = useState<'explanation' | 'two_workflows' | 'one_workflow'>('explanation');
 
   const checkGitHubStatus = async () => {
     setSyncState(prev => ({
@@ -54,12 +58,12 @@ export const GitHubSyncMonitor: React.FC = () => {
     sound.playPencilStroke();
 
     try {
-      // 1. Check GitHub API for latest commit on main branch
       let commitSha: string | null = null;
       let commitDate: string | null = null;
       let commitMsg: string | null = null;
-      let detectedRemoteVersion = 'v1.6.0'; // Default historical reference known from user's report
+      let detectedRemoteVersion: string | null = null;
 
+      // 1. Check GitHub API for latest commit on main branch
       try {
         const ghRes = await fetch(
           `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?per_page=1`,
@@ -73,7 +77,6 @@ export const GitHubSyncMonitor: React.FC = () => {
             commitDate = new Date(latest.commit.committer.date).toLocaleString('es-ES');
             commitMsg = latest.commit.message;
 
-            // Extract version from commit message if available
             const verMatch = commitMsg?.match(/v\d+\.\d+\.\d+/i);
             if (verMatch) {
               detectedRemoteVersion = verMatch[0];
@@ -84,7 +87,7 @@ export const GitHubSyncMonitor: React.FC = () => {
         console.warn('No se pudo consultar GitHub API pública:', err);
       }
 
-      // 2. Try to query GitHub Pages live version endpoint (cache-busted)
+      // 2. Query GitHub Pages live version endpoint (cache-busted)
       try {
         const pagesRes = await fetch(`${GITHUB_PAGES_URL}version.json?_t=${Date.now()}`, {
           cache: 'no-store',
@@ -96,7 +99,11 @@ export const GitHubSyncMonitor: React.FC = () => {
           }
         }
       } catch {
-        // If version.json doesn't exist yet on gh-pages, it confirms it's an older release (like v1.6.0)
+        // Fallback: older version deployed without version.json
+      }
+
+      if (!detectedRemoteVersion) {
+        detectedRemoteVersion = 'v1.6.0';
       }
 
       const isUpToDate = detectedRemoteVersion === LOCAL_VERSION;
@@ -109,8 +116,8 @@ export const GitHubSyncMonitor: React.FC = () => {
         remoteCommitSha: commitSha,
         checkedAt: new Date().toLocaleTimeString('es-ES'),
         message: isUpToDate
-          ? '¡Tu GitHub Pages está al día con la última versión v1.9.0!'
-          : `Discrepancia detectada: GitHub Pages tiene la versión ${detectedRemoteVersion}, pero aquí en AI Studio estás en ${LOCAL_VERSION}.`,
+          ? `¡Tu GitHub Pages está al día con la última versión ${LOCAL_VERSION}!`
+          : `Versión remota en GitHub Pages: ${detectedRemoteVersion} (Entorno activo en AI Studio: ${LOCAL_VERSION}).`,
       });
 
       if (isUpToDate) sound.playVictory();
@@ -123,7 +130,7 @@ export const GitHubSyncMonitor: React.FC = () => {
         remoteCommitMessage: null,
         remoteCommitSha: null,
         checkedAt: new Date().toLocaleTimeString('es-ES'),
-        message: 'GitHub Pages se encuentra en la versión antigua v1.6.0 y requiere sincronizar los cambios de AI Studio.',
+        message: 'GitHub Pages se encuentra en una versión previa y requiere sincronizar los cambios de AI Studio.',
       });
     }
   };
@@ -134,10 +141,63 @@ export const GitHubSyncMonitor: React.FC = () => {
 
   const gitCliCommands = `# 1. Abre tu terminal en la carpeta del proyecto
 git add .
-git commit -m "v1.9.0: Actualizar con salas Firestore 6 dígitos y monitor de sincronización"
+git commit -m "v1.10.0: Actualización integral con Firestore 6 dígitos y monitor de sincronización"
 git push origin main
 
 # ¡Listo! GitHub Actions iniciará el despliegue automático en gh-pages.`;
+
+  const unifiedWorkflowYml = `name: Desplegar en GitHub Pages (Nativo Directo)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm install --legacy-peer-deps
+
+      - name: Construir proyecto
+        run: npm run build
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4`;
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -155,7 +215,7 @@ echo ""
 
 git status
 git add .
-git commit -m "v1.9.0: Actualización integral con Firestore 6 dígitos y monitor de versiones"
+git commit -m "v1.10.0: Actualización integral con Firestore 6 dígitos y monitor de versiones"
 git push origin main
 
 echo ""
@@ -253,7 +313,7 @@ echo "${GITHUB_PAGES_URL}"
               </span>
             </div>
             <p className="text-stone-700 text-xs">
-              Contiene todas las mejoras más recientes: Salas en Firestore con códigos numéricos de 6 dígitos, sincronización de tablero bidireccional y diagnóstico en vivo.
+              Contiene todas las mejoras más recientes: Salas en Firestore con códigos numéricos de 6 dígitos, sincronización de tablero bidireccional, auditoría CI/CD y diagnóstico en vivo.
             </p>
           </div>
 
@@ -283,7 +343,7 @@ echo "${GITHUB_PAGES_URL}"
                 </span>
               ) : (
                 <span className="text-amber-900">
-                  ⚠️ El sitio público está sirviendo la compilación previa ({syncState.remoteVersion || 'v1.6.0'}). Las mejoras de v1.7.0, v1.8.0 y v1.9.0 aún no se han subido a la rama main de GitHub.
+                  ⚠️ El sitio público está sirviendo la compilación previa ({syncState.remoteVersion || 'v1.6.0'}). Las mejoras de v1.7.0, v1.8.0, v1.9.0 y v1.10.0 aún no se han subido a la rama main de GitHub.
                 </span>
               )}
             </p>
@@ -291,31 +351,165 @@ echo "${GITHUB_PAGES_URL}"
         </div>
       </div>
 
-      {/* Explanation of Why It Happens */}
-      <div className="bg-white border-2 border-stone-800 rounded-xl p-4 sm:p-5 sketch-border-sm">
-        <h4 className="font-title text-2xl font-bold text-stone-900 flex items-center gap-2 mb-2">
-          <Info className="w-5 h-5 text-amber-700" />
-          <span>¿Por qué ocurre este desfase entre AI Studio y GitHub Pages?</span>
-        </h4>
-        <div className="space-y-2 text-sm text-stone-700 leading-relaxed">
-          <p>
-            <strong>1. AI Studio es un taller de desarrollo en la nube independiente:</strong> Cuando editamos el código o añadimos mejoras en AI Studio, los cambios se ejecutan de inmediato en esta vista previa privada (puerto 3000), pero <em>no se transmiten solos</em> a tu repositorio personal en GitHub por seguridad y control de versiones.
+      {/* SPECIAL SECTION: Why do you have 2 workflows in GitHub Actions? */}
+      <div className="bg-[#fffef8] border-2 border-stone-800 rounded-xl p-4 sm:p-5 sketch-border-sm shadow-2xs">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 mb-3 border-b-2 border-dashed border-stone-300">
+          <div className="flex items-center gap-2">
+            <Workflow className="w-5 h-5 text-amber-800" />
+            <h4 className="font-title text-2xl font-bold text-stone-900">
+              ¿Por qué tienes 2 Workflows en GitHub Actions?
+            </h4>
+          </div>
+          <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border border-emerald-400 px-2.5 py-1 rounded text-xs font-bold">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Ambos en verde = ¡Despliegue 100% Exitoso!</span>
+          </div>
+        </div>
+
+        {/* Visual Pipeline Chain Diagram */}
+        <div className="bg-stone-50 border border-stone-300 rounded-xl p-3 sm:p-4 mb-4">
+          <p className="text-xs font-bold text-stone-600 mb-2 uppercase tracking-wide">
+            Arquitectura de Despliegue en 2 Eslabones (Cadena Automática):
           </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+            {/* Step 1: User's deploy workflow */}
+            <div className="bg-white border-2 border-amber-800 rounded-lg p-3 sketch-border-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-amber-800 text-white flex items-center justify-center text-xs font-bold">1</span>
+                <span className="font-bold text-stone-900 text-sm">Desplegar en GitHub Pages</span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-tight">
+                <strong>Origen:</strong> Archivo <code className="bg-stone-100 px-1 rounded font-mono">.github/workflows/deploy.yml</code>.
+              </p>
+              <p className="text-[11px] text-stone-700 mt-1 leading-tight">
+                Toma tu código TypeScript/React de la rama <strong>main</strong>, corre <code className="bg-stone-100 px-1 rounded font-mono">npm run build</code> y sube la carpeta <code className="bg-stone-100 px-1 rounded font-mono">dist/</code> a la rama <strong>gh-pages</strong>.
+              </p>
+            </div>
+
+            {/* Connection Arrow */}
+            <div className="hidden md:flex flex-col items-center justify-center text-stone-400 font-bold text-xs">
+              <span className="text-[10px] text-stone-500 mb-1">Dispara al terminar</span>
+              <ArrowRight className="w-6 h-6 text-amber-700 animate-pulse" />
+              <span className="text-[10px] text-amber-900 font-mono mt-1">push a gh-pages</span>
+            </div>
+
+            {/* Step 2: GitHub internal pages workflow */}
+            <div className="bg-white border-2 border-emerald-700 rounded-lg p-3 sketch-border-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-5 h-5 rounded-full bg-emerald-800 text-white flex items-center justify-center text-xs font-bold">2</span>
+                <span className="font-bold text-stone-900 text-sm">pages-build-deployment</span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-tight">
+                <strong>Origen:</strong> Bot interno de GitHub (<code className="bg-stone-100 px-1 rounded font-mono">github-pages[bot]</code>).
+              </p>
+              <p className="text-[11px] text-stone-700 mt-1 leading-tight">
+                Detecta los archivos nuevos en la rama <strong>gh-pages</strong> y los publica en los servidores CDN mundiales de <code className="bg-stone-100 px-1 rounded font-mono">{REPO_OWNER}.github.io</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Detailed Explanation */}
+        <div className="space-y-2 text-sm text-stone-700 leading-relaxed mb-4">
           <p>
-            <strong>2. GitHub Pages solo se recompila cuando hay un nuevo commit en tu repositorio:</strong> Tu archivo <code className="bg-stone-100 px-1.5 py-0.5 rounded text-xs font-mono font-bold text-amber-900">.github/workflows/deploy.yml</code> está programado para dispararse automáticamente cada vez que recibe un <code>git push</code> en la rama <code>main</code>.
+            <strong>Es totalmente normal y esperado:</strong> En GitHub existen dos formas de publicar una página estática. Tú estás usando la estrategia clásica de <strong>dos pasos coordinados</strong>:
           </p>
-          <p>
-            <strong>3. Caché agresiva del navegador:</strong> Cuando GitHub Pages ya se haya actualizado, los navegadores suelen almacenar en caché los archivos <code>.js</code> y <code>.css</code> antiguos. Si no ves los cambios enseguida, presiona <kbd className="bg-stone-200 px-1 rounded font-mono text-xs">Ctrl + F5</kbd> (o abre una ventana de incógnito).
-          </p>
+          <ul className="list-disc list-inside space-y-1 text-xs text-stone-600 pl-2">
+            <li>
+              <strong>El primero (tu workflow):</strong> Compila el código React moderno a archivos estáticos (HTML, JS, CSS) y los deposita en la rama <code className="font-mono bg-stone-100 px-1 rounded">gh-pages</code>.
+            </li>
+            <li>
+              <strong>El segundo (el bot de GitHub):</strong> Como en <em>Settings &gt; Pages</em> tienes seleccionado que publique desde la rama <em>gh-pages</em>, GitHub ejecuta automáticamente su propio workflow interno para poner esos archivos en vivo en internet.
+            </li>
+          </ul>
+        </div>
+
+        {/* Tab switcher: Keep 2 or convert to 1 */}
+        <div className="pt-3 border-t border-stone-200">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="text-xs font-bold text-stone-700">Opciones de configuración:</span>
+            <button
+              onClick={() => setWorkflowTab('explanation')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                workflowTab === 'explanation'
+                  ? 'bg-amber-200 border border-amber-600 text-stone-900'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+              }`}
+            >
+              ¿Debo cambiar algo?
+            </button>
+            <button
+              onClick={() => setWorkflowTab('one_workflow')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                workflowTab === 'one_workflow'
+                  ? 'bg-amber-200 border border-amber-600 text-stone-900'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+              }`}
+            >
+              ¿Cómo tener 1 solo workflow si prefiero?
+            </button>
+          </div>
+
+          {workflowTab === 'explanation' && (
+            <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-3 text-xs text-emerald-950 space-y-1.5">
+              <p className="font-bold flex items-center gap-1.5 text-sm text-emerald-900">
+                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                <span>Respuesta corta: ¡No necesitas cambiar nada!</span>
+              </p>
+              <p>
+                Tu captura de pantalla muestra ambos workflows con tilde verde (✔). Esto significa que la compilación y la publicación se realizaron con éxito absoluto.
+              </p>
+              <p>
+                La única razón por la que en el navegador podrías ver la versión antigua es la <strong>caché del navegador</strong> o porque aún no habías subido este commit con <kbd className="bg-emerald-200/80 px-1 rounded font-mono">git push origin main</kbd>.
+              </p>
+            </div>
+          )}
+
+          {workflowTab === 'one_workflow' && (
+            <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-xs text-amber-950">
+                <p className="font-bold mb-1">
+                  Si prefieres ver un solo workflow en tu panel de GitHub Actions:
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-stone-700">
+                  <li>
+                    En GitHub ve a: <strong>Settings &gt; Pages</strong>.
+                  </li>
+                  <li>
+                    En <strong>Build and deployment &gt; Source</strong>: cambia de <em>Deploy from a branch</em> a <strong className="text-amber-950 bg-amber-200 px-1 rounded">GitHub Actions</strong>.
+                  </li>
+                  <li>
+                    Reemplaza tu archivo <code className="font-mono bg-white px-1 rounded">.github/workflows/deploy.yml</code> por la plantilla nativa directa que aparece abajo.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-stone-700">Plantilla para 1 solo workflow nativo directo:</span>
+                  <button
+                    onClick={() => copyToClipboard(unifiedWorkflowYml, 'unified_yml')}
+                    className="flex items-center gap-1 px-2.5 py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-400 rounded text-xs font-bold text-stone-800 cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{copiedCode === 'unified_yml' ? '¡Copiado!' : 'Copiar YAML'}</span>
+                  </button>
+                </div>
+                <pre className="bg-[#2a2623] text-amber-200 p-3 rounded-lg text-[11px] font-mono overflow-x-auto leading-relaxed max-h-48">
+                  {unifiedWorkflowYml}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* How to fix and sync */}
+      {/* How to push and update */}
       <div className="bg-[#fcf8ee] border-2 border-stone-800 rounded-xl p-4 sm:p-5 sketch-border-sm">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h4 className="font-title text-2xl font-bold text-stone-900 flex items-center gap-2">
             <GitBranch className="w-5 h-5 text-stone-800" />
-            <span>¿Cómo sincronizar los cambios hacia GitHub ahora mismo?</span>
+            <span>Comandos para sincronizar la versión {LOCAL_VERSION} a GitHub</span>
           </h4>
           <button
             onClick={downloadSyncScript}
@@ -326,13 +520,11 @@ echo "${GITHUB_PAGES_URL}"
           </button>
         </div>
 
-        {/* Step 1: Terminal commands */}
         <div className="space-y-3 text-sm">
           <div className="bg-white border border-stone-300 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="font-bold text-stone-900 flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs">1</span>
-                <span>Comandos Git para subir los cambios a tu repositorio:</span>
+              <span className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                <span>Ejecuta en tu terminal para enviar las mejoras:</span>
               </span>
               <button
                 onClick={() => copyToClipboard(gitCliCommands, 'git')}
@@ -345,44 +537,6 @@ echo "${GITHUB_PAGES_URL}"
             <pre className="bg-[#2a2623] text-amber-200 p-3 rounded-lg text-xs font-mono overflow-x-auto leading-relaxed">
               {gitCliCommands}
             </pre>
-          </div>
-
-          {/* Step 2: GitHub Actions Settings */}
-          <div className="bg-white border border-stone-300 rounded-lg p-3">
-            <span className="font-bold text-stone-900 flex items-center gap-1.5 mb-2">
-              <span className="w-5 h-5 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs">2</span>
-              <span>Revisa que los permisos de GitHub Actions estén habilitados:</span>
-            </span>
-            <ul className="list-disc list-inside space-y-1 text-xs text-stone-600 pl-1">
-              <li>
-                Entra a tu repositorio: <a href={`${REPO_URL}/settings/actions`} target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">Settings &gt; Actions &gt; General</a>.
-              </li>
-              <li>
-                Baja hasta <strong>Workflow permissions</strong> y marca la opción: <strong className="text-stone-900 bg-amber-100 px-1 rounded">Read and write permissions</strong>. Haz clic en <em>Save</em>.
-              </li>
-              <li>
-                Esto le da permiso al bot de GitHub Actions para publicar la compilación en la rama <code className="font-mono bg-stone-100 px-1 rounded">gh-pages</code> sin errores de permisos (Error 403).
-              </li>
-            </ul>
-          </div>
-
-          {/* Step 3: GitHub Pages configuration */}
-          <div className="bg-white border border-stone-300 rounded-lg p-3">
-            <span className="font-bold text-stone-900 flex items-center gap-1.5 mb-2">
-              <span className="w-5 h-5 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs">3</span>
-              <span>Comprueba el origen de GitHub Pages:</span>
-            </span>
-            <ul className="list-disc list-inside space-y-1 text-xs text-stone-600 pl-1">
-              <li>
-                En <a href={`${REPO_URL}/settings/pages`} target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">Settings &gt; Pages</a>:
-              </li>
-              <li>
-                En <strong>Source</strong>: selecciona <em>Deploy from a branch</em>.
-              </li>
-              <li>
-                En <strong>Branch</strong>: selecciona <strong className="text-stone-900 font-mono">gh-pages</strong> y carpeta <strong className="text-stone-900 font-mono">/ (root)</strong>, luego haz clic en <em>Save</em>.
-              </li>
-            </ul>
           </div>
         </div>
       </div>

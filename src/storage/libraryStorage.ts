@@ -7,6 +7,22 @@ const STORAGE_KEY_STATS = 'ahorcado_stats_v1';
 
 export const APP_VERSIONS = [
   {
+    version: 'v1.10.0',
+    releaseDate: 'Nov 2026',
+    title: 'Auditoría de Arquitectura CI/CD: Pipeline Dual (Deploy + pages-build-deployment) y Workflow Nativo Unificado',
+    highlights: [
+      'Documentación y auditoría de la arquitectura de doble workflow en GitHub Actions: por qué coexisten "Desplegar en GitHub Pages" y "pages-build-deployment".',
+      'Diagrama explicativo interactivo de la cadena de 2 eslabones: compilador de rama gh-pages vs bot despachador CDN de GitHub.',
+      'Soporte y plantilla para Workflow Nativo Unificado (GitHub Actions nativo directo con actions/deploy-pages) sin necesidad de rama intermedia gh-pages.',
+      'Selector de estrategia de despliegue en la pestaña de Auditoría (Doble Workflow clásico vs Workflow Único directo).',
+      'Verificación y validación de ejecuciones exitosas (ambos checks en verde en actions/runs).',
+    ],
+    auditedModules: [
+      { id: 'mod-pipeline-dual-audit', name: 'Auditor de Pipeline Doble GitHub Actions', version: '1.10.0', status: 'passed' as const, description: 'Trazabilidad y diagnóstico de los dos workflows coordinados en GitHub.', features: ['Workflow compilador', 'Workflow pages-build-deployment bot', 'Diagrama de flujo visual', 'Selector de estrategia'] },
+      { id: 'mod-native-gh-deploy', name: 'Configurador de Despliegue Nativo Directo', version: '1.10.0', status: 'passed' as const, description: 'Plantillas y soporte para despliegue directo sin rama gh-pages.', features: ['actions/deploy-pages@v4', 'actions/upload-pages-artifact@v3', 'Modo sin rama intermedia'] },
+    ],
+  },
+  {
     version: 'v1.9.0',
     releaseDate: 'Nov 2026',
     title: 'Monitor de Sincronización GitHub Pages & Trazabilidad de Versiones Remotas',

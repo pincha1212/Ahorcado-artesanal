@@ -413,7 +413,7 @@ git push -u origin main`;
 
         {/* Footer */}
         <div className="pt-3 mt-4 border-t border-stone-300 flex justify-between items-center text-xs text-stone-500 font-hand">
-          <span>Versión activa: <strong className="text-stone-800">v1.9.0 (Monitor de Sincronización GitHub Pages & Firestore 6 Dígitos)</strong></span>
+          <span>Versión activa: <strong className="text-stone-800">v1.10.0 (Auditoría CI/CD Dual & Monitor GitHub Pages)</strong></span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-stone-800 text-white rounded font-bold hover:bg-stone-900 text-sm cursor-pointer"
