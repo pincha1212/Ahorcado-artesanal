@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --pencil-color: #2b2b2b;
+    --paper-bg: #f9f6ed;
+    --paper-line: #e3decb;
+    --pencil-red: #c0392b;
+    --pencil-blue: #2980b9;
+    --pencil-green: #27ae60;
+  }
+}
+
+.font-hand {
+  font-family: 'Patrick Hand', cursive, sans-serif;
+}
+
+.font-title {
+  font-family: 'Caveat', cursive, sans-serif;
+}
+
+.font-typewriter {
+  font-family: 'Special Elite', monospace, sans-serif;
+}
+
+/* Authentic Paper Textures */
+.paper-pattern {
+  background-color: #fbf8ef;
+  background-image: 
+    linear-gradient(to right, rgba(200, 185, 160, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(200, 185, 160, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.notebook-sheet {
+  background-color: #fffef8;
+  box-shadow: 
+    0 1px 3px rgba(0,0,0,0.06),
+    0 10px 25px -5px rgba(60, 50, 40, 0.1),
+    2px 2px 0px #eae3d2;
+  position: relative;
+}
+
+/* Red margin line like school exercise notebooks */
+.notebook-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 36px;
+  width: 2px;
+  background-color: rgba(230, 110, 110, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .notebook-sheet::before {
+    left: 20px;
+  }
+}
+
+/* Hand-drawn borders */
+.sketch-border {
+  border: 2px solid #3c3836;
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+}
+
+.sketch-border-sm {
+  border: 1.5px solid #3c3836;
+  border-radius: 120px 8px 110px 8px/8px 110px 8px 120px;
+}
+
+.sketch-shadow {
+  box-shadow: 2px 3px 0px rgba(45, 40, 35, 0.85);
+}
+
+.sketch-shadow-hover:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 4px 0px rgba(45, 40, 35, 0.95);
+}
+
+.sketch-shadow-hover:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px rgba(45, 40, 35, 0.95);
+}
+
+/* Custom Scrollbar for notebook vibe */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1ebd8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bbb199;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #998e75;
+}

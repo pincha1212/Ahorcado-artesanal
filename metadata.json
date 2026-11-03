@@ -1,0 +1,6 @@
+{
+  "name": "El Ahorcado Artesanal - Palabras IA & Multijugador",
+  "description": "Juego de ahorcado clásico con estética de cuaderno y lápiz hecho a mano, generación inteligente de palabras con IA, biblioteca de colecciones, multijugador local y salas online.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
