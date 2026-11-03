@@ -396,7 +396,7 @@ git push -u origin main`;
                 </h4>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-stone-700">
                   <li>
-                    Crea un repositorio nuevo en <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-amber-800 underline font-bold">GitHub</a> (público o privado).
+                    Crea un repositorio en <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-amber-800 underline font-bold">GitHub</a> (ej: <code>Ahorcado-artesanal</code>).
                   </li>
                   <li>
                     Ejecuta estos comandos en tu terminal local:
@@ -413,13 +413,17 @@ git push -u origin main`;
                     </div>
                   </li>
                   <li>
-                    En tu repositorio en GitHub, ve a: <strong>Settings &gt; Pages &gt; Build and deployment</strong>.
+                    El flujo de GitHub Actions compilará automáticamente el proyecto con <code>npm run build</code> y publicará la carpeta <code>dist</code> en la rama <strong>gh-pages</strong>.
                   </li>
                   <li>
-                    En <strong>Source</strong>, selecciona <strong>GitHub Actions</strong>.
+                    En tu repositorio en GitHub, ve a: <strong>Settings &gt; Pages</strong>:
+                    <ul className="list-disc list-inside ml-4 mt-1 space-y-1 text-stone-600">
+                      <li>En <strong>Source</strong>: selecciona <em>Deploy from a branch</em>.</li>
+                      <li>En <strong>Branch</strong>: selecciona <em>gh-pages</em> y carpeta <em>/ (root)</em>, luego haz clic en <em>Save</em>.</li>
+                    </ul>
                   </li>
                   <li>
-                    ¡Listo! GitHub Actions compilará y desplegará tu Ahorcado automáticamente en tu URL gratuita de GitHub Pages: <code className="bg-stone-100 px-1 rounded">https://tu-usuario.github.io/tu-repo/</code>.
+                    ¡Listo! Tu juego estará publicado y funcionando en: <code className="bg-stone-100 px-1 rounded font-bold text-emerald-800">https://tu-usuario.github.io/tu-repo/</code>.
                   </li>
                 </ol>
               </div>
