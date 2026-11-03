@@ -44,7 +44,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Initial connection verification test
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'rooms', '_test_connection'));
+    await getDocFromServer(doc(db, 'games', '_test_connection'));
     return true;
   } catch (error: any) {
     if (error instanceof Error && error.message.includes('the client is offline')) {

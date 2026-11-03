@@ -12,6 +12,10 @@ service cloud.firestore {
       return id is string && id.size() <= 32 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidGameId(id) {
+      return id is string && id.matches('^[0-9]{6}$');
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -20,33 +24,40 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isValidRoom(data) {
+    function isValidGame(data) {
       return data.code is string && data.code.size() == 6 &&
-             data.hostName is string && data.hostName.size() > 0 && data.hostName.size() <= 30 &&
+             data.hostName is string && data.hostName.size() > 0 && data.hostName.size() <= 40 &&
              data.hostId is string && data.hostId.size() > 0 && data.hostId.size() <= 64 &&
-             data.mode in ['duel', 'turns', 'custom_word'] &&
-             data.status in ['waiting', 'playing', 'round_ended', 'match_finished'] &&
-             data.totalRounds is number && data.totalRounds >= 1 && data.totalRounds <= 10 &&
-             data.currentRound is number && data.currentRound >= 1 && data.currentRound <= 10 &&
-             data.mistakes is number && data.mistakes >= 0 && data.mistakes <= 8 &&
-             data.maxMistakes is number && data.maxMistakes >= 6 && data.maxMistakes <= 8;
+             data.mode in ['duel', 'turns', 'custom_word', 'secret_word'] &&
+             data.status in ['waiting', 'in_progress', 'round_over', 'finished', 'playing', 'round_ended', 'match_finished'] &&
+             data.totalRounds is number && data.totalRounds >= 1 && data.totalRounds <= 20 &&
+             data.currentRound is number && data.currentRound >= 1 && data.currentRound <= 20 &&
+             data.mistakes is number && data.mistakes >= 0 && data.mistakes <= 10 &&
+             data.maxMistakes is number && data.maxMistakes >= 6 && data.maxMistakes <= 10;
     }
 
-    // Game Rooms collection
-    match /rooms/{roomId} {
-      allow get, list: if isValidId(roomId);
+    // New 6-digit Firestore Games collection
+    match /games/{gameId} {
+      allow get, list: if isValidGameId(gameId) || gameId == '_test_connection';
 
-      // Create new room
-      allow create: if isValidId(roomId) &&
-                       isValidRoom(incoming()) &&
-                       incoming().code == roomId;
+      // Create new 6-digit game
+      allow create: if (isValidGameId(gameId) && isValidGame(incoming()) && incoming().code == gameId) ||
+                       gameId == '_test_connection';
 
-      // Update room state during gameplay (guest joins, letters guessed, word set, round next)
-      allow update: if isValidId(roomId) &&
-                       isValidRoom(incoming()) &&
+      // Update game state during gameplay (guest joins, letters guessed, board synced)
+      allow update: if isValidGameId(gameId) &&
+                       isValidGame(incoming()) &&
                        incoming().code == existing().code &&
                        incoming().hostId == existing().hostId;
 
+      allow delete: if false;
+    }
+
+    // Legacy Game Rooms collection
+    match /rooms/{roomId} {
+      allow get, list: if isValidId(roomId);
+      allow create: if isValidId(roomId) && incoming().code == roomId;
+      allow update: if isValidId(roomId) && incoming().code == existing().code;
       allow delete: if false;
     }
   }

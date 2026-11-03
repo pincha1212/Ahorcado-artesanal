@@ -7,6 +7,23 @@ const STORAGE_KEY_STATS = 'ahorcado_stats_v1';
 
 export const APP_VERSIONS = [
   {
+    version: 'v1.8.0',
+    releaseDate: 'Nov 2026',
+    title: 'Colección Games en Firestore con Códigos de 6 Dígitos y Sincronización Total',
+    highlights: [
+      'Creación de partidas en la colección games de Google Cloud Firestore con generación de código numérico de 6 dígitos (ej: 482910).',
+      'Lógica de unión a sala mediante el código de 6 dígitos con validación estricta y control de cupo para 2 jugadores.',
+      'Sincronización bidireccional en tiempo real del estado completo del tablero: letras elegidas (guessedLetters), intentos y trazos (mistakes), palabra oculta y revelada (displayWord).',
+      'Bloqueo y control estricto de turnos en modo Por Turnos Alternados, impidiendo entradas fuera de turno con indicador visual de espera.',
+      'Despliegue y validación de reglas de seguridad firestore.rules para la ruta /games/{gameId} con regex ^[0-9]{6}$.',
+      'Actualización del esquema formal en firebase-blueprint.json registrando la colección /games/{gameId}.',
+    ],
+    auditedModules: [
+      { id: 'mod-games-firestore-6dig', name: 'Gestor de Partidas /games en Firestore', version: '1.8.0', status: 'passed' as const, description: 'Generación de códigos numéricos de 6 dígitos y persistencia en colección games.', features: ['Código 6 dígitos numéricos', 'Colección /games', 'Validación 2 jugadores', 'onSnapshot sync'] },
+      { id: 'mod-board-sync-realtime', name: 'Sincronizador de Tablero en Tiempo Real', version: '1.8.0', status: 'passed' as const, description: 'Sincronización instantánea de letras arriesgadas, intentos restantes y canvas de ahorcado.', features: ['guessedLetters sync', 'mistakes sync', 'displayWord sync', 'Control de turnos'] },
+    ],
+  },
+  {
     version: 'v1.7.0',
     releaseDate: 'Nov 2026',
     title: 'Multijugador en la Nube con Google Cloud Firestore',

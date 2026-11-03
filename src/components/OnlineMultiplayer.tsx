@@ -51,12 +51,12 @@ export const OnlineMultiplayer: React.FC = () => {
     };
   }, []);
 
-  // Check URL hash for direct invite (e.g. #room=AHORC8)
+  // Check URL hash for direct invite (e.g. #room=482910)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
-      const match = window.location.hash.match(/room=([A-Z0-9]+)/i);
+      const match = window.location.hash.match(/room=([0-9]{6})/i);
       if (match && match[1]) {
-        setJoinCodeInput(match[1].toUpperCase());
+        setJoinCodeInput(match[1]);
       }
     }
   }, []);
@@ -183,9 +183,9 @@ export const OnlineMultiplayer: React.FC = () => {
 
   // Join room (Primary: Firestore Cloud DB; Fallback: Server or WebRTC P2P)
   const handleJoinRoom = async () => {
-    const cleanCode = joinCodeInput.trim().toUpperCase();
-    if (!cleanCode) {
-      setErrorMessage('Ingresa un código de sala.');
+    const cleanCode = joinCodeInput.trim().replace(/\D/g, '').slice(0, 6);
+    if (!cleanCode || cleanCode.length !== 6) {
+      setErrorMessage('Ingresa un código numérico de 6 dígitos (ej: 482910).');
       return;
     }
     setIsLoading(true);
@@ -216,7 +216,7 @@ export const OnlineMultiplayer: React.FC = () => {
       setIsLoading(false);
       return;
     } catch (err: any) {
-      if (err.message && (err.message.includes('La sala') || err.message.includes('código'))) {
+      if (err.message && (err.message.includes('sala') || err.message.includes('código') || err.message.includes('jugadores'))) {
         setErrorMessage(err.message);
         setIsLoading(false);
         return;
@@ -393,7 +393,7 @@ export const OnlineMultiplayer: React.FC = () => {
                 <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Nube Activa</span>
               </div>
               <p className="text-stone-700 mt-1 leading-relaxed">
-                Las salas se sincronizan al instante en la base de datos oficial de Google Cloud. Puedes compartir el código de 6 letras con quien quieras para jugar juntos desde cualquier navegador, móvil o GitHub Pages.
+                Las salas se sincronizan al instante en la colección <strong className="text-amber-900">games</strong> de Google Cloud Firestore. Puedes compartir el código numérico de 6 dígitos con quien quieras para jugar juntos desde cualquier navegador, móvil o GitHub Pages.
               </p>
             </div>
           </div>
@@ -455,19 +455,21 @@ export const OnlineMultiplayer: React.FC = () => {
                   Unirse a una Sala
                 </h3>
                 <p className="font-hand text-stone-600 text-xs mb-3">
-                  Ingresa el código de 6 caracteres que te compartió el creador de la sala.
+                  Ingresa el código numérico de 6 dígitos que te compartió el creador de la sala.
                 </p>
                 <div className="font-hand mb-4">
                   <label className="block text-stone-700 font-bold text-sm mb-1">
-                    Código de Sala:
+                    Código de Sala (6 dígitos):
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={joinCodeInput}
-                    onChange={e => setJoinCodeInput(e.target.value.toUpperCase())}
-                    placeholder="Ej: AHORC8"
+                    onChange={e => setJoinCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Ej: 482910"
                     maxLength={6}
-                    className="w-full bg-white border-2 border-stone-400 rounded-lg p-2 font-typewriter text-xl uppercase tracking-widest text-center"
+                    className="w-full bg-white border-2 border-stone-400 rounded-lg p-2 font-typewriter text-2xl uppercase tracking-widest text-center"
                   />
                 </div>
               </div>
@@ -679,8 +681,14 @@ export const OnlineMultiplayer: React.FC = () => {
 
                   {/* Turn indicator in turns mode */}
                   {roomState.mode === 'turns' && roomState.status === 'in_progress' && (
-                    <div className="text-sm font-hand bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300">
-                      Turno de: <strong className="font-bold">{roomState.currentTurn === 'host' ? roomState.hostName : roomState.guestName}</strong>
+                    <div className={`text-sm font-hand px-3.5 py-1 rounded-full border shadow-xs transition-all ${
+                      (!roomState.currentTurn || (roomState.currentTurn === 'host' ? playerId === roomState.hostId : playerId === roomState.guestId))
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold'
+                        : 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse'
+                    }`}>
+                      {(!roomState.currentTurn || (roomState.currentTurn === 'host' ? playerId === roomState.hostId : playerId === roomState.guestId))
+                        ? '✏️ ¡Es tu turno de arriesgar una letra!'
+                        : `⏳ Esperando a que ${roomState.currentTurn === 'host' ? roomState.hostName : roomState.guestName} elija una letra...`}
                     </div>
                   )}
 
@@ -734,7 +742,12 @@ export const OnlineMultiplayer: React.FC = () => {
                   guessedLetters={new Set(roomState.guessedLetters)}
                   secretWord={roomState.displayWord.join('')}
                   onGuessLetter={handleGuess}
-                  disabled={roomState.status !== 'in_progress'}
+                  disabled={
+                    roomState.status !== 'in_progress' ||
+                    (roomState.mode === 'turns' && Boolean(roomState.currentTurn) && (
+                      roomState.currentTurn === 'host' ? playerId !== roomState.hostId : playerId !== roomState.guestId
+                    ))
+                  }
                 />
               </div>
             </div>

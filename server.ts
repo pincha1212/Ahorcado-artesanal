@@ -72,11 +72,7 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 function generateRoomCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
   return rooms.has(code) ? generateRoomCode() : code;
 }
 

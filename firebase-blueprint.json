@@ -111,6 +111,10 @@
     }
   },
   "firestore": {
+    "/games/{gameId}": {
+      "schema": "GameRoom",
+      "description": "Colección de partidas sincronizadas en tiempo real con código numérico único de 6 dígitos en Google Cloud Firestore."
+    },
     "/rooms/{roomId}": {
       "schema": "GameRoom",
       "description": "Colección raíz de salas de juego activas sincronizadas en la nube de Firebase Firestore."
