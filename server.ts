@@ -10,7 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Enforce Port 3000 for AI Studio container proxy
+const PORT = 3000;
 
 app.use(express.json());
 
@@ -460,8 +461,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`> Servidor de El Ahorcado ejecutándose en puerto ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`> Servidor de El Ahorcado ejecutándose en http://0.0.0.0:${PORT}`);
   });
 }
 

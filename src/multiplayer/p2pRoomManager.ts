@@ -84,7 +84,7 @@ export class P2PRoomManager {
       guessedLetters: [],
       mistakes: 0,
       maxMistakes: 7,
-      winner: null,
+      winner: undefined,
       lastActivity: Date.now(),
     };
 
@@ -92,7 +92,9 @@ export class P2PRoomManager {
     await this.initPeerAsHost(code);
     this.initBroadcastChannel(code);
 
-    this.onStateChange(this.localRoomState);
+    if (this.localRoomState) {
+      this.onStateChange(this.localRoomState);
+    }
     return { code, playerId: this.playerId };
   }
 
@@ -272,7 +274,7 @@ export class P2PRoomManager {
       this.localRoomState.status = 'in_progress';
       this.localRoomState.guessedLetters = [];
       this.localRoomState.mistakes = 0;
-      this.localRoomState.winner = null;
+      this.localRoomState.winner = undefined;
       this.localRoomState.wordLength = trimmed.replace(/\s+/g, '').length;
       this.localRoomState.displayWord = this.generateMask(trimmed, []);
     } else if (action === 'guess_letter') {
@@ -339,7 +341,7 @@ export class P2PRoomManager {
         this.localRoomState.currentRound += 1;
         this.localRoomState.guessedLetters = [];
         this.localRoomState.mistakes = 0;
-        this.localRoomState.winner = null;
+        this.localRoomState.winner = undefined;
         this.localRoomState.secretWordRevealed = undefined;
 
         if (this.localRoomState.mode === 'secret_word') {

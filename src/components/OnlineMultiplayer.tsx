@@ -656,7 +656,7 @@ export const OnlineMultiplayer: React.FC = () => {
 
                   {/* Underlined word */}
                   <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 py-4 min-h-[60px]">
-                    {roomState.displayWord.map((char, index) => {
+                    {(roomState.displayWord || []).map((char, index) => {
                       if (char === ' ') return <span key={index} className="w-4 sm:w-6" />;
                       const isRevealed = char !== '_';
                       return (
@@ -740,7 +740,7 @@ export const OnlineMultiplayer: React.FC = () => {
               <div className="w-full mt-4">
                 <VirtualKeyboard
                   guessedLetters={new Set(roomState.guessedLetters)}
-                  secretWord={roomState.displayWord.join('')}
+                  secretWord={(roomState.displayWord || []).join('')}
                   onGuessLetter={handleGuess}
                   disabled={
                     roomState.status !== 'in_progress' ||
