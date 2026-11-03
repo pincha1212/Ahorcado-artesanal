@@ -258,3 +258,8 @@ export const DEFAULT_CATEGORIES = [
   'Ciencia',
   'Arte y Literatura',
 ];
+
+export function getRandomWord(): WordItem {
+  return DEFAULT_WORDS[Math.floor(Math.random() * DEFAULT_WORDS.length)];
+}
+

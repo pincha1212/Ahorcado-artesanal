@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "GameRoom": {
+      "title": "Sala de Juego Multijugador",
+      "description": "Estado sincronizado en tiempo real de una partida multijugador del Ahorcado en la nube.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]{6}$",
+          "description": "Código alfanumérico único de 6 caracteres de la sala."
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Nombre o apodo del anfitrión de la sala."
+        },
+        "guestName": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Nombre o apodo del invitado o segundo jugador."
+        },
+        "hostId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Identificador único de sesión del anfitrión."
+        },
+        "guestId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Identificador único de sesión del invitado."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["duel", "turns", "custom_word"],
+          "description": "Modalidad de juego multijugador."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "playing", "round_ended", "match_finished"],
+          "description": "Estado actual del ciclo de vida de la partida."
+        },
+        "totalRounds": {
+          "type": "integer",
+          "description": "Número total de rondas acordadas para el encuentro."
+        },
+        "currentRound": {
+          "type": "integer",
+          "description": "Número de ronda actual en curso."
+        },
+        "scores": {
+          "type": "object",
+          "description": "Marcador acumulado del anfitrión y del invitado."
+        },
+        "secretWord": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Palabra secreta normalizada de la ronda actual."
+        },
+        "maskedWord": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Representación visual con guiones bajos y letras descubiertas."
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Categoría o temática de la palabra en juego."
+        },
+        "hint": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Pista temática para orientar a los jugadores."
+        },
+        "guessedLetters": {
+          "type": "array",
+          "description": "Lista de letras arriesgadas en la ronda actual."
+        },
+        "mistakes": {
+          "type": "integer",
+          "description": "Contador de trazos de ahorcado acumulados en la ronda."
+        },
+        "maxMistakes": {
+          "type": "integer",
+          "description": "Límite máximo de fallos permitidos antes de la derrota (7)."
+        },
+        "activePlayer": {
+          "type": "string",
+          "enum": ["host", "guest"],
+          "description": "Indica a quién le corresponde el turno actual."
+        },
+        "creatorOfWord": {
+          "type": "string",
+          "enum": ["host", "guest"],
+          "description": "En modalidad de desafío, indica quién redacta la palabra secreta."
+        },
+        "winner": {
+          "type": "string",
+          "description": "Ganador de la ronda o de la partida completa."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Marca de tiempo ISO de la última acción recibida."
+        }
+      },
+      "required": ["code", "hostName", "hostId", "mode", "status", "totalRounds", "currentRound", "scores", "mistakes", "maxMistakes"]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": "GameRoom",
+      "description": "Colección raíz de salas de juego activas sincronizadas en la nube de Firebase Firestore."
+    }
+  }
+}

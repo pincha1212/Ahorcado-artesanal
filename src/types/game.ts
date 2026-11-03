@@ -48,31 +48,36 @@ export interface PlayerStats {
 
 export interface OnlineRoomState {
   code: string;
-  mode: 'duel' | 'turns' | 'secret_word';
+  mode: 'duel' | 'turns' | 'secret_word' | 'custom_word';
   hostName: string;
   guestName?: string;
-  hostReady: boolean;
-  guestReady: boolean;
-  status: 'waiting' | 'in_progress' | 'round_over' | 'finished';
+  hostId?: string;
+  guestId?: string;
+  hostReady?: boolean;
+  guestReady?: boolean;
+  status: 'waiting' | 'playing' | 'round_ended' | 'match_finished' | 'in_progress' | 'round_over' | 'finished';
   currentRound: number;
   totalRounds: number;
-  currentTurn: 'host' | 'guest';
+  currentTurn?: 'host' | 'guest';
+  activePlayer?: 'host' | 'guest';
   scores: {
     host: number;
     guest: number;
   };
-  // The word is kept masked from guest if secret word or in progress
-  displayWord: string[];
-  wordLength: number;
+  secretWord?: string;
+  maskedWord?: string;
+  displayWord?: string[];
+  wordLength?: number;
   category: string;
   hint?: string;
   guessedLetters: string[];
   mistakes: number;
   maxMistakes: number;
-  winner?: 'host' | 'guest' | 'draw' | null;
-  creatorOfWord?: 'host' | 'guest';
-  secretWordRevealed?: string; // only revealed when round concludes
-  lastActivity: number;
+  winner?: string;
+  creatorOfWord?: 'host' | 'guest' | '';
+  secretWordRevealed?: string;
+  lastActivity?: number;
+  updatedAt?: string;
 }
 
 export interface ModuleAuditStatus {

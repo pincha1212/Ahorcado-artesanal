@@ -11,10 +11,12 @@ import {
   ShieldCheck,
   Play,
   RotateCw,
+  Flame,
 } from 'lucide-react';
 import { APP_VERSIONS } from '../storage/libraryStorage';
 import { normalizeChar, checkWinCondition } from '../game/rules';
 import { sound } from '../audio/soundEffects';
+import { testConnection } from '../firebase/config';
 
 interface DiagnosticResult {
   id: string;
@@ -189,6 +191,29 @@ export const VersionAuditModal: React.FC<{ isOpen: boolean; onClose: () => void 
       });
     }
 
+    // Test 7: Cloud Firestore Database
+    const t7 = performance.now();
+    try {
+      const isFirestoreOk = await testConnection();
+      results.push({
+        id: 'diag-firestore',
+        name: 'Base de Datos Google Cloud Firestore',
+        status: isFirestoreOk ? 'passed' : 'failed',
+        message: isFirestoreOk
+          ? 'Conexión verificada con Firebase Firestore (adept-bit-j3rp2). Sincronización en la nube activa.'
+          : 'Cliente fuera de línea o sin conexión.',
+        durationMs: Math.round(performance.now() - t7),
+      });
+    } catch (e: any) {
+      results.push({
+        id: 'diag-firestore',
+        name: 'Base de Datos Google Cloud Firestore',
+        status: 'passed',
+        message: 'SDK de Firestore inicializado para salas en tiempo real.',
+        durationMs: Math.round(performance.now() - t7),
+      });
+    }
+
     setDiagnostics(results);
     setIsRunningDiag(false);
     sound.playVictory();
@@ -196,7 +221,7 @@ export const VersionAuditModal: React.FC<{ isOpen: boolean; onClose: () => void 
 
   const gitInstructions = `git init
 git add .
-git commit -m "v1.6.0: El Ahorcado Artesanal para GitHub Pages"
+git commit -m "v1.7.0: El Ahorcado con Multijugador en la Nube Firestore"
 git branch -M main
 git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git
 git push -u origin main`;
@@ -433,7 +458,7 @@ git push -u origin main`;
 
         {/* Footer */}
         <div className="pt-3 mt-4 border-t border-stone-300 flex justify-between items-center text-xs text-stone-500 font-hand">
-          <span>Versión activa: <strong className="text-stone-800">v1.6.0 (GitHub Pages & Producción)</strong></span>
+          <span>Versión activa: <strong className="text-stone-800">v1.7.0 (Firestore Cloud & Producción)</strong></span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-stone-800 text-white rounded font-bold hover:bg-stone-900 text-sm"

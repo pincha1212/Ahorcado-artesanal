@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Globe, Users, Copy, Check, Play, RefreshCw, KeyRound, Sparkles } from 'lucide-react';
+import { Globe, Users, Copy, Check, Play, RefreshCw, KeyRound, Sparkles, Flame, Cloud } from 'lucide-react';
 import { OnlineRoomState } from '../types/game';
 import { HangmanCanvas } from './HangmanCanvas';
 import { VirtualKeyboard } from './VirtualKeyboard';
 import { sound } from '../audio/soundEffects';
 
 import { P2PRoomManager } from '../multiplayer/p2pRoomManager';
+import { FirestoreRoomManager } from '../multiplayer/firestoreRoomManager';
 
 export const OnlineMultiplayer: React.FC = () => {
   const [inRoom, setInRoom] = useState(false);
@@ -23,8 +24,10 @@ export const OnlineMultiplayer: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [connectionType, setConnectionType] = useState<'server' | 'p2p'>('server');
+  const [connectionType, setConnectionType] = useState<'firestore' | 'server' | 'p2p'>('firestore');
 
+  // Firestore Manager Ref
+  const firestoreManagerRef = useRef<FirestoreRoomManager>(new FirestoreRoomManager());
   // P2P Manager Ref
   const p2pManagerRef = useRef<P2PRoomManager | null>(null);
   // Polling interval ref
@@ -93,12 +96,44 @@ export const OnlineMultiplayer: React.FC = () => {
     }
   }, [inRoom, roomCode, playerId, pollRoom, connectionType]);
 
-  // Create room (Hybrid: Server if available, WebRTC P2P fallback on GitHub Pages)
+  // Create room (Primary: Firestore Cloud DB; Fallback: Server or WebRTC P2P)
   const handleCreateRoom = async () => {
     setIsLoading(true);
     setErrorMessage('');
 
-    // Attempt 1: Express Server API
+    const mappedMode = selectedMode === 'secret_word' ? 'custom_word' : selectedMode;
+
+    // Attempt 1: Google Cloud Firestore (Primary & Real-time Cloud DB)
+    try {
+      const { code, playerId: pId, room } = await firestoreManagerRef.current.createRoom(
+        playerName,
+        mappedMode,
+        totalRoundsInput
+      );
+      setRoomCode(code);
+      setPlayerId(pId);
+      setRoomState(room);
+      setConnectionType('firestore');
+      setInRoom(true);
+      sound.playPageFlip();
+
+      // Subscribe to real-time room events
+      firestoreManagerRef.current.subscribeRoom(
+        code,
+        (updatedRoom) => {
+          setRoomState(updatedRoom);
+        },
+        (err) => {
+          console.error('Firestore subscription error:', err);
+        }
+      );
+      setIsLoading(false);
+      return;
+    } catch (err: any) {
+      console.warn('Firestore create room fallback:', err);
+    }
+
+    // Attempt 2: Express Server API
     try {
       const res = await fetch('/api/online/create', {
         method: 'POST',
@@ -125,7 +160,7 @@ export const OnlineMultiplayer: React.FC = () => {
       // Server not reachable (expected on static GitHub Pages)
     }
 
-    // Attempt 2: Serverless WebRTC P2P via PeerJS (Runs 100% on GitHub Pages!)
+    // Attempt 3: Serverless WebRTC P2P via PeerJS
     try {
       if (p2pManagerRef.current) {
         const { code, playerId: pId } = await p2pManagerRef.current.createRoom(
@@ -140,13 +175,13 @@ export const OnlineMultiplayer: React.FC = () => {
         sound.playPageFlip();
       }
     } catch (err: any) {
-      setErrorMessage('No se pudo iniciar la sala P2P: ' + (err?.message || 'Error WebRTC'));
+      setErrorMessage('No se pudo iniciar la sala online: ' + (err?.message || 'Error de conexión'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Join room (Hybrid: Server if available, WebRTC P2P on GitHub Pages)
+  // Join room (Primary: Firestore Cloud DB; Fallback: Server or WebRTC P2P)
   const handleJoinRoom = async () => {
     const cleanCode = joinCodeInput.trim().toUpperCase();
     if (!cleanCode) {
@@ -156,7 +191,40 @@ export const OnlineMultiplayer: React.FC = () => {
     setIsLoading(true);
     setErrorMessage('');
 
-    // Attempt 1: Server API
+    // Attempt 1: Google Cloud Firestore
+    try {
+      const { code, playerId: pId, room } = await firestoreManagerRef.current.joinRoom(
+        cleanCode,
+        playerName
+      );
+      setRoomCode(code);
+      setPlayerId(pId);
+      setRoomState(room);
+      setConnectionType('firestore');
+      setInRoom(true);
+      sound.playPageFlip();
+
+      firestoreManagerRef.current.subscribeRoom(
+        code,
+        (updatedRoom) => {
+          setRoomState(updatedRoom);
+        },
+        (err) => {
+          console.error('Firestore subscription error:', err);
+        }
+      );
+      setIsLoading(false);
+      return;
+    } catch (err: any) {
+      if (err.message && (err.message.includes('La sala') || err.message.includes('código'))) {
+        setErrorMessage(err.message);
+        setIsLoading(false);
+        return;
+      }
+      console.warn('Firestore join room fallback:', err);
+    }
+
+    // Attempt 2: Server API
     try {
       const res = await fetch('/api/online/join', {
         method: 'POST',
@@ -182,7 +250,7 @@ export const OnlineMultiplayer: React.FC = () => {
       // Server not reachable (on GitHub Pages)
     }
 
-    // Attempt 2: Serverless WebRTC P2P (GitHub Pages)
+    // Attempt 3: Serverless WebRTC P2P
     try {
       if (p2pManagerRef.current) {
         const { code, playerId: pId } = await p2pManagerRef.current.joinRoom(cleanCode, playerName);
@@ -193,15 +261,24 @@ export const OnlineMultiplayer: React.FC = () => {
         sound.playPageFlip();
       }
     } catch (err: any) {
-      setErrorMessage('No se pudo conectar a la sala P2P: ' + (err?.message || 'Código no encontrado'));
+      setErrorMessage('No se pudo conectar a la sala: ' + (err?.message || 'Código no encontrado'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Send room action (dispatches via Server API or P2PRoomManager)
+  // Send room action (dispatches via Firestore, Server API or P2PRoomManager)
   const sendRoomAction = async (action: string, payload?: any) => {
     if (!roomCode || !playerId) return;
+
+    if (connectionType === 'firestore') {
+      try {
+        await firestoreManagerRef.current.sendAction(roomCode, playerId, action, payload);
+      } catch (err) {
+        console.error('Error sending action to Firestore:', err);
+      }
+      return;
+    }
 
     if (connectionType === 'p2p' && p2pManagerRef.current) {
       p2pManagerRef.current.sendAction(action, payload);
@@ -254,6 +331,7 @@ export const OnlineMultiplayer: React.FC = () => {
 
   // Leave room
   const handleLeaveRoom = () => {
+    firestoreManagerRef.current.destroy();
     if (p2pManagerRef.current) {
       p2pManagerRef.current.destroy();
     }
@@ -306,12 +384,18 @@ export const OnlineMultiplayer: React.FC = () => {
             </div>
           )}
 
-          {/* Static GitHub Pages / Server info badge */}
-          <div className="mb-4 p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center gap-2 text-xs font-hand text-amber-900">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span>
-              <strong>100% Compatible con GitHub Pages:</strong> Utiliza WebRTC P2P automático cuando la app se aloja estáticamente, permitiendo partidas multijugador en tiempo real sin requerir servidor backend.
-            </span>
+          {/* Cloud Database & Real-Time Multiplayer Badge */}
+          <div className="mb-5 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl flex items-start gap-3 text-xs font-hand text-stone-800 shadow-xs sketch-border-sm">
+            <Flame className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-amber-950 text-sm flex items-center gap-1.5 flex-wrap">
+                <span>Partidas en la Nube con Google Cloud Firestore</span>
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Nube Activa</span>
+              </div>
+              <p className="text-stone-700 mt-1 leading-relaxed">
+                Las salas se sincronizan al instante en la base de datos oficial de Google Cloud. Puedes compartir el código de 6 letras con quien quieras para jugar juntos desde cualquier navegador, móvil o GitHub Pages.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-dashed border-stone-300">
@@ -448,11 +532,16 @@ export const OnlineMultiplayer: React.FC = () => {
             {/* Connection mode & round info */}
             <div className="w-full flex items-center justify-between text-xs font-hand text-stone-500 mt-2.5 pt-2 border-t border-dashed border-stone-300">
               <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${connectionType === 'p2p' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
-                <span>
-                  {connectionType === 'p2p' 
-                    ? 'Conexión WebRTC P2P Directa (Serverless / GitHub Pages)' 
-                    : 'Conexión Servidor Node.js Express'}
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  connectionType === 'firestore' ? 'bg-amber-500 animate-pulse' :
+                  connectionType === 'p2p' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'
+                }`} />
+                <span className="font-semibold text-stone-700">
+                  {connectionType === 'firestore'
+                    ? '🔥 Nube Google Cloud Firestore (Sincronización en Tiempo Real)'
+                    : connectionType === 'p2p'
+                    ? '🌐 Conexión WebRTC P2P Directa (Serverless)'
+                    : '🚀 Servidor Node.js Express'}
                 </span>
               </span>
               <span>Ronda {roomState?.currentRound || 1} de {roomState?.totalRounds || 1}</span>

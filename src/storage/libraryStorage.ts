@@ -7,6 +7,23 @@ const STORAGE_KEY_STATS = 'ahorcado_stats_v1';
 
 export const APP_VERSIONS = [
   {
+    version: 'v1.7.0',
+    releaseDate: 'Nov 2026',
+    title: 'Multijugador en la Nube con Google Cloud Firestore',
+    highlights: [
+      'Integración oficial de base de datos en la nube Google Cloud Firestore para partidas multijugador online.',
+      'Sincronización bidireccional instantánea en tiempo real mediante listeners onSnapshot entre ambos jugadores.',
+      'Esquema formal firebase-blueprint.json y despliegue de reglas de seguridad endurecidas firestore.rules.',
+      'Módulo FirestoreRoomManager con arquitectura robusta de salas de 6 letras, validación y sincronización de puntajes.',
+      'Compatibilidad universal: permite jugar a distancia entre móviles, PCs, tablets y despliegues en GitHub Pages sin servidor Express.',
+      'Control defensivo de errores conforme a FirestoreErrorInfo y fallback de alta disponibilidad a WebRTC P2P.',
+    ],
+    auditedModules: [
+      { id: 'mod-firestore-cloud', name: 'Gestor de Salas Cloud Firestore', version: '1.7.0', status: 'passed' as const, description: 'Sincronización en tiempo real sin servidor intermediario en la nube de Google.', features: ['Salas en Firebase', 'onSnapshot listeners', 'Gestión de turnos', 'Validación de letras'] },
+      { id: 'mod-security-rules', name: 'Reglas de Seguridad y Blueprint Firestore', version: '1.7.0', status: 'passed' as const, description: 'Reglas ABAC desplegadas para control de acceso y estructura de salas.', features: ['firestore.rules', 'firebase-blueprint.json', 'handleFirestoreError', 'Prevención de trampas'] },
+    ],
+  },
+  {
     version: 'v1.6.0',
     releaseDate: 'Nov 2026',
     title: 'Compatibilidad GitHub Pages & Multijugador P2P Sin Servidor',
