@@ -5,6 +5,8 @@ import { HangmanCanvas } from './HangmanCanvas';
 import { VirtualKeyboard } from './VirtualKeyboard';
 import { sound } from '../audio/soundEffects';
 
+import { P2PRoomManager } from '../multiplayer/p2pRoomManager';
+
 export const OnlineMultiplayer: React.FC = () => {
   const [inRoom, setInRoom] = useState(false);
   const [roomCode, setRoomCode] = useState('');
@@ -21,9 +23,40 @@ export const OnlineMultiplayer: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionType, setConnectionType] = useState<'server' | 'p2p'>('server');
 
+  // P2P Manager Ref
+  const p2pManagerRef = useRef<P2PRoomManager | null>(null);
   // Polling interval ref
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize P2P manager
+  useEffect(() => {
+    p2pManagerRef.current = new P2PRoomManager(
+      (updatedState) => {
+        setRoomState(updatedState);
+      },
+      (err) => {
+        setErrorMessage(err);
+      }
+    );
+
+    return () => {
+      if (p2pManagerRef.current) {
+        p2pManagerRef.current.destroy();
+      }
+    };
+  }, []);
+
+  // Check URL hash for direct invite (e.g. #room=AHORC8)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const match = window.location.hash.match(/room=([A-Z0-9]+)/i);
+      if (match && match[1]) {
+        setJoinCodeInput(match[1].toUpperCase());
+      }
+    }
+  }, []);
 
   // Save player name
   const updatePlayerName = (name: string) => {
@@ -31,8 +64,9 @@ export const OnlineMultiplayer: React.FC = () => {
     localStorage.setItem('ahorcado_player_name', name);
   };
 
-  // Poll room updates from server
+  // Poll room updates from server (only in server mode)
   const pollRoom = useCallback(async (code: string, pId: string) => {
+    if (connectionType !== 'server') return;
     try {
       const res = await fetch(`/api/online/room/${code}?playerId=${encodeURIComponent(pId)}`);
       if (!res.ok) return;
@@ -43,11 +77,11 @@ export const OnlineMultiplayer: React.FC = () => {
     } catch {
       // transient network error
     }
-  }, []);
+  }, [connectionType]);
 
   // Start polling when in room
   useEffect(() => {
-    if (inRoom && roomCode && playerId) {
+    if (inRoom && roomCode && playerId && connectionType === 'server') {
       pollRoom(roomCode, playerId);
       pollIntervalRef.current = setInterval(() => {
         pollRoom(roomCode, playerId);
@@ -57,12 +91,14 @@ export const OnlineMultiplayer: React.FC = () => {
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       };
     }
-  }, [inRoom, roomCode, playerId, pollRoom]);
+  }, [inRoom, roomCode, playerId, pollRoom, connectionType]);
 
-  // Create room
+  // Create room (Hybrid: Server if available, WebRTC P2P fallback on GitHub Pages)
   const handleCreateRoom = async () => {
     setIsLoading(true);
     setErrorMessage('');
+
+    // Attempt 1: Express Server API
     try {
       const res = await fetch('/api/online/create', {
         method: 'POST',
@@ -73,64 +109,105 @@ export const OnlineMultiplayer: React.FC = () => {
           totalRounds: totalRoundsInput,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMessage(data.error || 'Error al crear la sala.');
+
+      if (res.ok) {
+        const data = await res.json();
+        setRoomCode(data.code);
+        setPlayerId(data.playerId);
+        setRoomState(data.room);
+        setConnectionType('server');
+        setInRoom(true);
+        sound.playPageFlip();
         setIsLoading(false);
         return;
       }
+    } catch {
+      // Server not reachable (expected on static GitHub Pages)
+    }
 
-      setRoomCode(data.code);
-      setPlayerId(data.playerId);
-      setRoomState(data.room);
-      setInRoom(true);
-      sound.playPageFlip();
+    // Attempt 2: Serverless WebRTC P2P via PeerJS (Runs 100% on GitHub Pages!)
+    try {
+      if (p2pManagerRef.current) {
+        const { code, playerId: pId } = await p2pManagerRef.current.createRoom(
+          playerName,
+          selectedMode,
+          totalRoundsInput
+        );
+        setRoomCode(code);
+        setPlayerId(pId);
+        setConnectionType('p2p');
+        setInRoom(true);
+        sound.playPageFlip();
+      }
     } catch (err: any) {
-      setErrorMessage('No se pudo conectar al servidor de salas online.');
+      setErrorMessage('No se pudo iniciar la sala P2P: ' + (err?.message || 'Error WebRTC'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Join room
+  // Join room (Hybrid: Server if available, WebRTC P2P on GitHub Pages)
   const handleJoinRoom = async () => {
-    if (!joinCodeInput.trim()) {
-      setErrorMessage('Ingresa un código de 6 caracteres.');
+    const cleanCode = joinCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setErrorMessage('Ingresa un código de sala.');
       return;
     }
     setIsLoading(true);
     setErrorMessage('');
+
+    // Attempt 1: Server API
     try {
       const res = await fetch('/api/online/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: joinCodeInput.trim().toUpperCase(),
+          code: cleanCode,
           guestName: playerName,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMessage(data.error || 'No se pudo unir a la sala.');
+
+      if (res.ok) {
+        const data = await res.json();
+        setRoomCode(data.code);
+        setPlayerId(data.playerId);
+        setRoomState(data.room);
+        setConnectionType('server');
+        setInRoom(true);
+        sound.playPageFlip();
         setIsLoading(false);
         return;
       }
+    } catch {
+      // Server not reachable (on GitHub Pages)
+    }
 
-      setRoomCode(data.code);
-      setPlayerId(data.playerId);
-      setRoomState(data.room);
-      setInRoom(true);
-      sound.playPageFlip();
+    // Attempt 2: Serverless WebRTC P2P (GitHub Pages)
+    try {
+      if (p2pManagerRef.current) {
+        const { code, playerId: pId } = await p2pManagerRef.current.joinRoom(cleanCode, playerName);
+        setRoomCode(code);
+        setPlayerId(pId);
+        setConnectionType('p2p');
+        setInRoom(true);
+        sound.playPageFlip();
+      }
     } catch (err: any) {
-      setErrorMessage('Error al comunicarse con la sala online.');
+      setErrorMessage('No se pudo conectar a la sala P2P: ' + (err?.message || 'Código no encontrado'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Send room action
+  // Send room action (dispatches via Server API or P2PRoomManager)
   const sendRoomAction = async (action: string, payload?: any) => {
     if (!roomCode || !playerId) return;
+
+    if (connectionType === 'p2p' && p2pManagerRef.current) {
+      p2pManagerRef.current.sendAction(action, payload);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/online/room/${roomCode}/action`, {
         method: 'POST',
@@ -177,6 +254,9 @@ export const OnlineMultiplayer: React.FC = () => {
 
   // Leave room
   const handleLeaveRoom = () => {
+    if (p2pManagerRef.current) {
+      p2pManagerRef.current.destroy();
+    }
     setInRoom(false);
     setRoomState(null);
     setRoomCode('');
@@ -225,6 +305,14 @@ export const OnlineMultiplayer: React.FC = () => {
               {errorMessage}
             </div>
           )}
+
+          {/* Static GitHub Pages / Server info badge */}
+          <div className="mb-4 p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center gap-2 text-xs font-hand text-amber-900">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span>
+              <strong>100% Compatible con GitHub Pages:</strong> Utiliza WebRTC P2P automático cuando la app se aloja estáticamente, permitiendo partidas multijugador en tiempo real sin requerir servidor backend.
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-dashed border-stone-300">
             {/* Create Room Box */}
@@ -351,10 +439,23 @@ export const OnlineMultiplayer: React.FC = () => {
               {/* Leave Room Button */}
               <button
                 onClick={handleLeaveRoom}
-                className="text-xs font-hand text-stone-600 hover:text-stone-900 border border-stone-300 px-2 py-1 rounded bg-white hover:bg-stone-100"
+                className="text-xs font-hand text-stone-600 hover:text-stone-900 border border-stone-300 px-2.5 py-1 rounded bg-white hover:bg-stone-100 transition-colors"
               >
                 Salir de Sala
               </button>
+            </div>
+
+            {/* Connection mode & round info */}
+            <div className="w-full flex items-center justify-between text-xs font-hand text-stone-500 mt-2.5 pt-2 border-t border-dashed border-stone-300">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${connectionType === 'p2p' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                <span>
+                  {connectionType === 'p2p' 
+                    ? 'Conexión WebRTC P2P Directa (Serverless / GitHub Pages)' 
+                    : 'Conexión Servidor Node.js Express'}
+                </span>
+              </span>
+              <span>Ronda {roomState?.currentRound || 1} de {roomState?.totalRounds || 1}</span>
             </div>
           </div>
 

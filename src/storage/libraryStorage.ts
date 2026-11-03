@@ -9,17 +9,20 @@ export const APP_VERSIONS = [
   {
     version: 'v1.6.0',
     releaseDate: 'Nov 2026',
-    title: 'Compatibilidad GitHub Pages & Reparación de Errores',
+    title: 'Compatibilidad GitHub Pages & Multijugador P2P Sin Servidor',
     highlights: [
+      'Multijugador Híbrido P2P WebRTC: permite jugar online en tiempo real en GitHub Pages sin necesidad de servidor backend.',
+      'Resolución de error en GitHub Actions: compatibilidad con npm install y archivo package-lock.json sin fallos de caché.',
       'Configuración de rutas relativas (base: ./) para despliegue en cualquier subdirectorio de GitHub Pages.',
-      'Flujo automatizado de GitHub Actions (.github/workflows/deploy.yml) para compilación y despliegue continuo.',
+      'Flujo automatizado de GitHub Actions (.github/workflows/deploy.yml) para compilación y despliegue continuo en la rama gh-pages.',
       'Generador semántico híbrido con modo offline/estático automático si no existe servidor backend.',
       'Reparación de entrada de teclado físico para caracteres con diacríticos (Á, É, Í, Ó, Ú, Ü).',
       'Corrección en la fórmula de puntaje excluyendo espacios de letras descubiertas.',
       'Redimensionamiento reactivo en tiempo real del lienzo 2D en dispositivos móviles y rotación de pantalla.',
     ],
     auditedModules: [
-      { id: 'mod-gh-pages', name: 'Módulo de Despliegue GitHub Pages', version: '1.6.0', status: 'passed' as const, description: 'Rutas relativas, flujo CI/CD y compatibilidad SPA estática.', features: ['base: ./', 'Workflow deploy.yml', 'Redirección 404 SPA', 'Modo híbrido'] },
+      { id: 'mod-p2p-multiplayer', name: 'Motor Multijugador WebRTC P2P (PeerJS)', version: '1.6.0', status: 'passed' as const, description: 'Salas multijugador directas navegador-a-navegador para GitHub Pages.', features: ['Salas P2P por código', 'Enmascaramiento host', 'DataChannels WebRTC', 'BroadcastChannel local'] },
+      { id: 'mod-gh-pages', name: 'Módulo de Despliegue GitHub Pages & CI/CD', version: '1.6.0', status: 'passed' as const, description: 'Rutas relativas, flujo GitHub Actions sin fallos de lockfile y compatibilidad SPA.', features: ['base: ./', 'Workflow deploy.yml', 'package-lock.json', 'Redirección 404 SPA'] },
       { id: 'mod-keyboard-fix', name: 'Controlador de Teclado Físico & Diacríticos', version: '1.6.0', status: 'passed' as const, description: 'Traducción de teclas físicas españolas con tildes a letras normalizadas.', features: ['Captura de Á/É/Í/Ó/Ú', 'Filtro de inputs', 'Fórmula limpia de puntaje'] },
     ],
   },
